@@ -1,25 +1,25 @@
 var express = require('express');
 var axios = require('axios');
+var cors = require('cors');
 
 var router = express.Router();
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  axios({
-    url: 'https://www.tut.by',
-    method: 'get'
-  })
-    .then(function(response) {
-      res.json({
-        html: response.data
-      });
-    })
-    .catch(function() {
-      res.json({
-        success: false,
-        message: 'Интернет сайт недоступен'
-      });
+router.get('/', cors(), async (req, res, next) => {
+  console.log('req.params == ', req.params);
+  try {
+    const response = await axios({
+      url: 'https://www.tut.by',
+      method: 'get'
     });
+
+    res.send({
+      html: response.data
+    });
+  } catch (error) {
+    console.log('error == ', error);
+    next(new Error(error));
+  }
 });
 
 module.exports = router;
