@@ -6,16 +6,55 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', cors(), async (req, res, next) => {
-  console.log('req.params == ', req.params);
   try {
     const response = await axios({
-      url: 'https://www.tut.by',
+      url: req.query.url,
       method: 'get'
     });
 
-    res.send({
-      html: response.data
-    });
+    const html = response.data;
+
+    const navTags = html
+      .toString()
+      .replace(/\s/g, '')
+      .match(/<\s*nav[^>]*>(.*?)<\s*\/\s*nav>/g);
+
+    let result = {
+      positive: [],
+      negative: []
+    };
+
+    if (navTags) {
+      result.positive.push('Тег навигации присутствует');
+
+      if (navTags[0].includes('<ul')) {
+        result.positive.push('Список меню присутствует');
+      } else {
+        result.negative.push('Список меню отсутствует');
+      }
+
+      if (navTags[0].includes('<li')) {
+        result.positive.push('Пункты меню присутствуют');
+      } else {
+        result.negative.push('Пункты меню отсутствуют');
+      }
+
+      if (navTags[0].includes('<a')) {
+        result.positive.push('Ссылки в меню присутствуют');
+      } else {
+        result.negative.push('Ссылки в меню отсутствуют');
+      }
+
+      if (navTags[0].includes('aria-current="page"')) {
+        result.positive.push('Aria тег текущей страницы присутвует');
+      } else {
+        result.negative.push('Aria тег текущей страницы отсутвует');
+      }
+    } else {
+      result.negative.push('Навигация отсутствует');
+    }
+
+    res.send(result);
   } catch (error) {
     console.log('error == ', error);
     next(new Error(error));
