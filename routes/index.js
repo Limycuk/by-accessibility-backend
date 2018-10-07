@@ -2,11 +2,24 @@ var express = require('express');
 var axios = require('axios');
 var cors = require('cors');
 
+var redis = require('redis');
+
 var router = express.Router();
+const client = redis.createClient();
 
 /* GET home page. */
 router.get('/', cors(), async (req, res, next) => {
   try {
+    const cache = await new Promise((resolve) =>
+      client.get(req.query.url, function(error, res) {
+        resolve(res);
+      })
+    );
+
+    if (cache) {
+      return res.json(JSON.parse(cache));
+    }
+
     const response = await axios({
       url: req.query.url,
       method: 'get'
@@ -54,6 +67,7 @@ router.get('/', cors(), async (req, res, next) => {
       result.negative.push('Навигация отсутствует');
     }
 
+    client.set(req.query.url, JSON.stringify(result));
     res.send(result);
   } catch (error) {
     console.log('error == ', error);
