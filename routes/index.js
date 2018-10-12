@@ -1,11 +1,15 @@
 var express = require('express');
 var axios = require('axios');
 var cors = require('cors');
-
+var AWS = require('aws-sdk');
 var redis = require('redis');
 
 var router = express.Router();
 const client = redis.createClient();
+
+client.on('error', function(err) {
+  console.log('Redis Error ' + err);
+});
 
 /* GET home page. */
 router.get('/', cors(), async (req, res, next) => {
@@ -19,6 +23,24 @@ router.get('/', cors(), async (req, res, next) => {
     if (cache) {
       return res.json(JSON.parse(cache));
     }
+
+    AWS.config = new AWS.Config();
+    AWS.config.region = 'eu-central-1';
+    AWS.config.accessKeyId = '';
+    AWS.config.secretAccessKey = '';
+
+    const fireHose = new AWS.Firehose();
+    fireHose.putRecord(
+      {
+        DeliveryStreamName: 'labatestKinesis',
+        Record: {
+          Data: new Buffer(JSON.stringify({ url: req.query.url }))
+        }
+      },
+      (err, data) => {
+        console.log('kinesis === ', err, data);
+      }
+    );
 
     const response = await axios({
       url: req.query.url,
